@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Page Object Model(POM) 패턴으로 테스트 구조 개선하기</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #4f8ef7;
+      --accent2: #7c5cfc;
+      --green: #3dd68c;
+      --red: #f7584f;
+      --yellow: #f7c948;
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --code-bg: #141720;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', sans-serif; font-size: 16px; line-height: 1.8; }
+    .hero { background: linear-gradient(135deg, #0f1117 0%, #1a1d27 50%, #0f1117 100%); border-bottom: 1px solid var(--border); padding: 72px 24px 56px; text-align: center; position: relative; overflow: hidden; }
+    .hero::before { content: ''; position: absolute; top: -80px; left: 50%; transform: translateX(-50%); width: 600px; height: 600px; background: radial-gradient(circle, rgba(124,92,252,0.08) 0%, transparent 70%); pointer-events: none; }
+    .series-tag { display: inline-block; background: rgba(124,92,252,0.12); color: var(--accent2); border: 1px solid rgba(124,92,252,0.3); border-radius: 20px; padding: 4px 16px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px; }
+    .hero h1 { font-size: clamp(24px, 4vw, 40px); font-weight: 700; line-height: 1.3; margin-bottom: 16px; background: linear-gradient(90deg, #e2e8f0, #7c5cfc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { color: var(--text-muted); font-size: 15px; max-width: 600px; margin: 0 auto 28px; }
+    .meta { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--text-muted); align-items: center; }
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+    .badge-blue { background: rgba(79,142,247,0.15); color: var(--accent); border: 1px solid rgba(79,142,247,0.25); }
+    .badge-green { background: rgba(61,214,140,0.15); color: var(--green); border: 1px solid rgba(61,214,140,0.25); }
+    .badge-purple { background: rgba(124,92,252,0.15); color: var(--accent2); border: 1px solid rgba(124,92,252,0.25); }
+    .badge-yellow { background: rgba(247,201,72,0.15); color: var(--yellow); border: 1px solid rgba(247,201,72,0.25); }
+    .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+    .toc { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent2); border-radius: 10px; padding: 24px 28px; margin: 48px 0 40px; }
+    .toc-title { font-size: 13px; font-weight: 700; color: var(--accent2); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+    .toc ol { padding-left: 20px; }
+    .toc li { color: var(--text-muted); font-size: 14px; margin-bottom: 10px; line-height: 1.6; }
+    .toc li strong { color: var(--text); }
+    .toc li span { color: var(--text-muted); font-size: 13px; }
+    .section { margin: 64px 0; }
+    .section-number { font-size: 12px; font-weight: 700; color: var(--accent2); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+    h2 { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+    h3 { font-size: 18px; font-weight: 700; color: var(--text); margin: 36px 0 14px; }
+    h4 { font-size: 15px; font-weight: 700; color: var(--accent2); margin: 24px 0 10px; }
+    p { color: var(--text-muted); margin-bottom: 16px; line-height: 1.95; }
+    p strong { color: var(--text); }
+    .callout { display: flex; gap: 14px; padding: 18px 20px; border-radius: 10px; margin: 24px 0; font-size: 14px; line-height: 1.75; }
+    .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+    .callout-body { color: var(--text-muted); }
+    .callout-body strong { color: var(--text); display: block; margin-bottom: 6px; }
+    .callout.info { background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.2); }
+    .callout.success { background: rgba(61,214,140,0.08); border: 1px solid rgba(61,214,140,0.2); }
+    .callout.warning { background: rgba(247,201,72,0.08); border: 1px solid rgba(247,201,72,0.2); }
+    .callout.tip { background: rgba(124,92,252,0.08); border: 1px solid rgba(124,92,252,0.2); }
+    .code-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; margin: 20px 0; overflow: hidden; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .code-filename { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted); }
+    .code-dots { display: flex; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-red { background: #f7584f; } .dot-yellow { background: #f7c948; } .dot-green { background: #3dd68c; }
+    pre { padding: 22px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.85; color: #abb2bf; }
+    .comment { color: #5c6370; font-style: italic; }
+    .keyword { color: #c678dd; }
+    .string { color: #98c379; }
+    .func { color: #61afef; }
+    .decorator { color: #e5c07b; }
+    .number { color: #d19a66; }
+    .param { color: #e06c75; }
+    .tree { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 22px 26px; margin: 20px 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 2.1; }
+    .tree-dir { color: var(--accent2); }
+    .tree-file { color: var(--text); }
+    .tree-comment { color: #5c6370; font-style: italic; }
+    .tree-new { color: var(--green); font-weight: 700; }
+    .point-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 24px 0; }
+    .point-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .point-icon { font-size: 24px; margin-bottom: 10px; }
+    .point-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .point-desc { font-size: 13px; color: var(--text-muted); line-height: 1.65; }
+    .result-box { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 22px; margin: 20px 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.9; }
+    .result-pass { color: var(--green); }
+    .result-fail { color: var(--red); }
+    .result-info { color: var(--text-muted); }
+    .result-highlight { color: var(--accent); }
+    .cmd { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent2); }
+
+    /* 비교 레이아웃 */
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+    .compare-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .compare-card.bad { border-top: 3px solid var(--red); }
+    .compare-card.good { border-top: 3px solid var(--green); }
+    .compare-label { padding: 10px 16px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .bad .compare-label { color: var(--red); background: rgba(247,84,79,0.06); }
+    .good .compare-label { color: var(--green); background: rgba(61,214,140,0.06); }
+    .compare-card pre { font-size: 12px; padding: 16px; }
+
+    /* 상속 다이어그램 */
+    .diagram { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin: 24px 0; text-align: center; }
+    .diagram-box { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 24px; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    .diagram-box.parent { border-color: var(--accent2); color: var(--accent2); }
+    .diagram-box.child { border-color: var(--accent); color: var(--accent); }
+    .diagram-arrow { color: var(--text-muted); font-size: 20px; margin: 10px 0; }
+    .diagram-row { display: flex; justify-content: center; gap: 16px; margin: 8px 0; }
+    .diagram-label { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+    /* 파일 역할 테이블 */
+    .file-table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; }
+    .file-table th { background: var(--surface2); color: var(--text); font-weight: 700; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+    .file-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text-muted); vertical-align: top; line-height: 1.6; }
+    .file-table tr:last-child td { border-bottom: none; }
+    .file-table code { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent2); background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
+
+    .summary { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin: 48px 0; }
+    .summary h3 { margin-top: 0; margin-bottom: 20px; font-size: 18px; }
+    .summary-item { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; font-size: 14px; color: var(--text-muted); line-height: 1.7; }
+    .summary-item .check { color: var(--green); font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+    .summary-item strong { color: var(--text); }
+
+    .prev-next { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 0 0 72px; }
+    .nav-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; }
+    .nav-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+    .prev-card .nav-label { color: var(--text-muted); }
+    .next-card { background: linear-gradient(135deg, rgba(124,92,252,0.08), rgba(79,142,247,0.08)); border-color: rgba(124,92,252,0.2); }
+    .next-card .nav-label { color: var(--accent2); }
+    .nav-title { font-size: 15px; font-weight: 700; color: var(--text); }
+    .nav-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 56px 0; }
+    @media (max-width: 600px) {
+      .compare { grid-template-columns: 1fr; }
+      .prev-next { grid-template-columns: 1fr; }
+      .diagram-row { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="series-tag">📝 시리즈 2편</div>
+  <h1>Page Object Model(POM) 패턴으로<br>테스트 구조 개선하기</h1>
+  <p>셀렉터가 테스트 파일 곳곳에 흩어져 있을 때 생기는 문제를 직접 겪고, POM 패턴으로 해결한 과정을 정리했습니다.</p>
+  <div class="meta">
+    <span>🗓 2026</span>
+    <span>⏱ 약 10분</span>
+    <span class="badge badge-purple">POM 패턴</span>
+    <span class="badge badge-blue">pytest</span>
+    <span class="badge badge-green">Playwright</span>
+    <span class="badge badge-yellow">리팩토링</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <div class="toc">
+    <div class="toc-title">📋 목차</div>
+    <ol>
+      <li><strong>POM이 왜 필요한가</strong> <span>— 적용 전 코드의 문제점을 직접 겪고 나서</span></li>
+      <li><strong>POM 패턴이란</strong> <span>— 개념과 핵심 아이디어</span></li>
+      <li><strong>프로젝트 구조 변화</strong> <span>— pages/ 폴더 추가로 달라진 것</span></li>
+      <li><strong>BasePage 구현</strong> <span>— 상속으로 공통 기능 재사용하기</span></li>
+      <li><strong>LoginPage / DashboardPage 구현</strong> <span>— 셀렉터와 동작을 클래스로 캡슐화</span></li>
+      <li><strong>fixture 재설계</strong> <span>— conftest.py로 테스트 준비 자동화</span></li>
+      <li><strong>테스트 코드 변화</strong> <span>— POM 적용 전후 비교</span></li>
+      <li><strong>실행 결과 및 회고</strong></li>
+    </ol>
+  </div>
+
+  <!-- 01 -->
+  <div class="section">
+    <div class="section-number">01</div>
+    <h2>POM이 왜 필요한가</h2>
+
+    <p>1편에서 만든 E2E 테스트 코드를 다시 보겠습니다. 처음에는 아래처럼 테스트 파일에 셀렉터를 직접 썼습니다.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+        <div class="code-filename">POM 적용 전 — test_login_e2e.py</div>
+      </div>
+      <pre><span class="keyword">def</span> <span class="func">test_login_success</span>(<span class="param">page</span>):
+    page.goto(<span class="string">"http://127.0.0.1:5000/login"</span>)
+    page.fill(<span class="string">"#username"</span>, <span class="string">"kim"</span>)      <span class="comment"># 셀렉터 직접 작성</span>
+    page.fill(<span class="string">"#password"</span>, <span class="string">"pass123"</span>)  <span class="comment"># 셀렉터 직접 작성</span>
+    page.click(<span class="string">"#login-btn"</span>)           <span class="comment"># 셀렉터 직접 작성</span>
+    assert <span class="string">"dashboard"</span> <span class="keyword">in</span> page.url
+
+<span class="keyword">def</span> <span class="func">test_login_fail</span>(<span class="param">page</span>):
+    page.goto(<span class="string">"http://127.0.0.1:5000/login"</span>)
+    page.fill(<span class="string">"#username"</span>, <span class="string">""</span>)           <span class="comment"># 또 같은 셀렉터 반복</span>
+    page.fill(<span class="string">"#password"</span>, <span class="string">"pass123"</span>)  <span class="comment"># 또 같은 셀렉터 반복</span>
+    page.click(<span class="string">"#login-btn"</span>)           <span class="comment"># 또 같은 셀렉터 반복</span>
+    assert page.is_visible(<span class="string">"#error"</span>)</pre>
+    </div>
+
+    <p>테스트가 2개일 때는 문제가 없어 보입니다. 하지만 테스트가 10개, 20개로 늘어나면 어떻게 될까요?</p>
+
+    <div class="callout warning">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <strong>실제로 겪은 문제</strong>
+        개발 중에 HTML의 <code style="font-family:monospace;color:var(--accent2)">id="login-btn"</code>을 <code style="font-family:monospace;color:var(--accent2)">id="submit-btn"</code>으로 변경했습니다. 그러자 <code style="font-family:monospace;color:var(--red)">#login-btn</code>을 쓰는 모든 테스트가 한꺼번에 실패했습니다. 테스트 파일 여러 곳을 일일이 찾아서 수정해야 했습니다. 테스트가 많아질수록 이 비용은 기하급수적으로 커집니다.
+      </div>
+    </div>
+
+    <p>이 문제의 핵심은 <strong>"어디서 요소를 찾는가(셀렉터)"와 "무엇을 검증하는가(테스트 로직)"가 같은 파일에 섞여있다</strong>는 것입니다. POM 패턴은 이 두 가지를 명확히 분리합니다.</p>
+  </div>
+
+  <!-- 02 -->
+  <div class="section">
+    <div class="section-number">02</div>
+    <h2>POM 패턴이란</h2>
+
+    <p><strong>Page Object Model</strong>은 웹 페이지의 요소(버튼, 입력창 등)와 동작(로그인, 로그아웃 등)을 <strong>클래스로 캡슐화</strong>하는 디자인 패턴입니다. 실무에서 GUI 자동화 테스트를 작성할 때 거의 표준처럼 사용됩니다.</p>
+
+    <div class="point-grid">
+      <div class="point-card">
+        <div class="point-icon">📦</div>
+        <div class="point-title">캡슐화</div>
+        <div class="point-desc">페이지의 셀렉터와 동작을 클래스 안에 숨깁니다. 테스트 코드는 내부 구현을 몰라도 됩니다.</div>
+      </div>
+      <div class="point-card">
+        <div class="point-icon">🔧</div>
+        <div class="point-title">단일 수정 포인트</div>
+        <div class="point-desc">HTML이 바뀌면 해당 page 파일 하나만 수정합니다. 테스트 파일은 건드릴 필요가 없습니다.</div>
+      </div>
+      <div class="point-card">
+        <div class="point-icon">📖</div>
+        <div class="point-title">가독성</div>
+        <div class="point-desc">테스트 코드가 시나리오처럼 읽힙니다. "무엇을 하는지"가 명확하게 보입니다.</div>
+      </div>
+      <div class="point-card">
+        <div class="point-icon">♻️</div>
+        <div class="point-title">재사용성</div>
+        <div class="point-desc">login() 메서드를 여러 테스트에서 공유합니다. 같은 코드를 반복 작성하지 않습니다.</div>
+      </div>
+    </div>
+
+    <h3>핵심 아이디어</h3>
+    <p>POM의 핵심은 간단합니다. <strong>"테스트 파일은 시나리오만, 페이지 파일은 구현만"</strong> 담당하도록 역할을 나누는 것입니다.</p>
+
+    <div class="compare">
+      <div class="compare-card bad">
+        <div class="compare-label">❌ POM 없이 — 역할이 섞임</div>
+        <pre><span class="comment"># 테스트 파일에 셀렉터가 직접 박혀있음</span>
+<span class="keyword">def</span> <span class="func">test_로그인</span>(<span class="param">page</span>):
+  page.fill(<span class="string">"#username"</span>, <span class="string">"kim"</span>)
+  page.fill(<span class="string">"#password"</span>, <span class="string">"pass123"</span>)
+  page.click(<span class="string">"#login-btn"</span>)
+  assert <span class="string">"dashboard"</span> <span class="keyword">in</span> page.url
+
+<span class="comment"># HTML 바뀌면 여기도 수정해야 함</span>
+<span class="keyword">def</span> <span class="func">test_실패</span>(<span class="param">page</span>):
+  page.fill(<span class="string">"#username"</span>, <span class="string">""</span>)
+  page.fill(<span class="string">"#password"</span>, <span class="string">"pass123"</span>)
+  page.click(<span class="string">"#login-btn"</span>)  <span class="comment"># 또 수정</span>
+  assert page.is_visible(<span class="string">"#error"</span>)</pre>
+      </div>
+      <div class="compare-card good">
+        <div class="compare-label">✅ POM 적용 — 역할이 분리됨</div>
+        <pre><span class="comment"># 테스트 파일은 시나리오만</span>
+<span class="keyword">def</span> <span class="func">test_로그인</span>(<span class="param">login_page</span>):
+  login_page.login(<span class="string">"kim"</span>, <span class="string">"pass123"</span>)
+  assert <span class="string">"dashboard"</span> <span class="keyword">in</span> login_page.get_current_url()
+
+<span class="keyword">def</span> <span class="func">test_실패</span>(<span class="param">login_page</span>):
+  login_page.login(<span class="string">""</span>, <span class="string">"pass123"</span>)
+  assert login_page.is_error_visible()
+
+<span class="comment"># HTML 바뀌면 login_page.py만 수정</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 -->
+  <div class="section">
+    <div class="section-number">03</div>
+    <h2>프로젝트 구조 변화</h2>
+
+    <p>POM 적용을 위해 <strong>tests/e2e/pages/</strong> 폴더를 새로 추가했습니다. 기존 파일은 그대로 두고 구조만 확장했습니다.</p>
+
+    <div class="tree">
+      <span class="tree-dir">tests/e2e/</span><br>
+      &nbsp;&nbsp;<span class="tree-file">conftest.py</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="tree-comment">← fixture 재설계 (login_page, logged_in 추가)</span><br>
+      &nbsp;&nbsp;<span class="tree-file">test_login_e2e.py</span>&nbsp;<span class="tree-comment">← 테스트 코드 전면 개선 (셀렉터 제거)</span><br>
+      &nbsp;&nbsp;<span class="tree-dir new">pages/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tree-comment" style="color:var(--green)">← 새로 추가된 폴더</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="tree-new">__init__.py</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="tree-comment" style="color:var(--green)">← pages/ 를 Python 패키지로 인식</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="tree-new">base_page.py</span>&nbsp;&nbsp;&nbsp;<span class="tree-comment" style="color:var(--green)">← 공통 기능 (상속의 부모 클래스)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="tree-new">login_page.py</span>&nbsp;&nbsp;<span class="tree-comment" style="color:var(--green)">← 로그인 페이지 셀렉터 + 동작</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="tree-new">dashboard_page.py</span>&nbsp;<span class="tree-comment" style="color:var(--green)">← 대시보드 페이지 셀렉터 + 동작</span>
+    </div>
+
+    <table class="file-table">
+      <thead>
+        <tr><th>파일</th><th>역할</th><th>담당하는 것</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>base_page.py</code></td>
+          <td>부모 클래스</td>
+          <td>모든 페이지 공통 기능 (URL 이동, 현재 URL 조회)</td>
+        </tr>
+        <tr>
+          <td><code>login_page.py</code></td>
+          <td>로그인 페이지 객체</td>
+          <td>셀렉터 상수, login(), is_error_visible() 등</td>
+        </tr>
+        <tr>
+          <td><code>dashboard_page.py</code></td>
+          <td>대시보드 페이지 객체</td>
+          <td>셀렉터 상수, get_welcome_text(), logout()</td>
+        </tr>
+        <tr>
+          <td><code>conftest.py</code></td>
+          <td>fixture 제공</td>
+          <td>login_page, logged_in fixture 자동 주입</td>
+        </tr>
+        <tr>
+          <td><code>test_login_e2e.py</code></td>
+          <td>테스트 시나리오</td>
+          <td>무엇을 검증하는가만 담당, 셀렉터 없음</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 04 -->
+  <div class="section">
+    <div class="section-number">04</div>
+    <h2>BasePage 구현</h2>
+
+    <p><span class="cmd">BasePage</span>는 모든 페이지 클래스의 <strong>부모 클래스</strong>입니다. LoginPage와 DashboardPage가 공통으로 쓰는 기능을 여기에 모아두면, 각 페이지 클래스에서 중복 코드 없이 상속받아 쓸 수 있습니다.</p>
+
+    <div class="diagram">
+      <div style="margin-bottom:8px">
+        <div class="diagram-box parent">BasePage</div>
+        <div class="diagram-label">공통 기능: navigate(), get_current_url(), take_screenshot()</div>
+      </div>
+      <div class="diagram-arrow">↙&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↘</div>
+      <div class="diagram-row">
+        <div>
+          <div class="diagram-box child">LoginPage</div>
+          <div class="diagram-label">login(), is_error_visible()</div>
+        </div>
+        <div>
+          <div class="diagram-box child">DashboardPage</div>
+          <div class="diagram-label">get_welcome_text(), logout()</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+        <div class="code-filename">tests/e2e/pages/base_page.py</div>
+      </div>
+      <pre><span class="keyword">class</span> <span class="func">BasePage</span>:
+    <span class="string">"""
+    모든 페이지 클래스의 부모 클래스
+    공통 기능을 여기에 모아두면 LoginPage, DashboardPage에서
+    중복 코드 없이 상속받아 쓸 수 있습니다
+    """</span>
+
+    <span class="keyword">def</span> <span class="func">__init__</span>(<span class="param">self</span>, <span class="param">page</span>):
+        <span class="comment"># page = Playwright 브라우저 탭 1개</span>
+        <span class="comment"># self.page 로 저장해두면 모든 메서드에서 접근 가능</span>
+        self.page = page
+
+    <span class="keyword">def</span> <span class="func">navigate</span>(<span class="param">self</span>, <span class="param">url</span>: str):
+        <span class="comment"># 브라우저를 해당 URL로 이동</span>
+        self.page.goto(url)
+
+    <span class="keyword">def</span> <span class="func">get_current_url</span>(<span class="param">self</span>) -> str:
+        <span class="comment"># 현재 브라우저 URL 반환</span>
+        <span class="comment"># "dashboard" in get_current_url() 처럼 페이지 이동 검증에 사용</span>
+        <span class="keyword">return</span> self.page.url
+
+    <span class="keyword">def</span> <span class="func">take_screenshot</span>(<span class="param">self</span>, <span class="param">name</span>: str):
+        <span class="comment"># 수동으로 스크린샷을 찍고 싶을 때 사용</span>
+        self.page.screenshot(path=f<span class="string">"artifacts/screenshots/{name}.png"</span>)</pre>
+    </div>
+
+    <div class="callout info">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <strong>상속이란?</strong>
+        부모 클래스의 메서드를 자식 클래스가 그대로 물려받는 것입니다. <code style="font-family:monospace;color:var(--accent2)">class LoginPage(BasePage)</code> 처럼 선언하면, LoginPage는 BasePage의 <code style="font-family:monospace">navigate()</code>, <code style="font-family:monospace">get_current_url()</code>을 추가 코드 없이 바로 쓸 수 있습니다.
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 -->
+  <div class="section">
+    <div class="section-number">05</div>
+    <h2>LoginPage / DashboardPage 구현</h2>
+
+    <h3>LoginPage</h3>
+    <p>로그인 페이지의 <strong>모든 셀렉터를 상수로 관리</strong>하고, 관련 동작을 메서드로 묶었습니다. 셀렉터를 상수로 쓰는 이유는 간단합니다. HTML이 바뀌면 상수값 하나만 수정하면 그 상수를 쓰는 모든 메서드가 자동으로 업데이트되기 때문입니다.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+        <div class="code-filename">tests/e2e/pages/login_page.py</div>
+      </div>
+      <pre><span class="keyword">from</span> .base_page <span class="keyword">import</span> BasePage
+<span class="comment"># "." = 같은 폴더(pages/)를 의미합니다</span>
+
+
+<span class="keyword">class</span> <span class="func">LoginPage</span>(BasePage):
+    <span class="comment"># BasePage를 상속 → navigate(), get_current_url() 자동으로 사용 가능</span>
+
+    URL = <span class="string">"http://127.0.0.1:5000/login"</span>
+
+    <span class="comment"># 셀렉터를 상수로 관리</span>
+    <span class="comment"># HTML의 id 값과 정확히 일치해야 합니다 (하이픈/언더스코어 주의!)</span>
+    USERNAME_INPUT = <span class="string">"#username"</span>   <span class="comment"># id="username" 인 input 태그</span>
+    PASSWORD_INPUT = <span class="string">"#password"</span>   <span class="comment"># id="password" 인 input 태그</span>
+    LOGIN_BUTTON   = <span class="string">"#login-btn"</span>  <span class="comment"># id="login-btn" 인 button 태그</span>
+    ERROR_MESSAGE  = <span class="string">"#error"</span>      <span class="comment"># id="error" 인 에러 메시지 태그</span>
+
+    <span class="keyword">def</span> <span class="func">navigate_to</span>(<span class="param">self</span>):
+        <span class="comment"># 로그인 페이지로 이동</span>
+        <span class="comment"># BasePage의 navigate()를 호출합니다</span>
+        self.navigate(self.URL)
+
+    <span class="keyword">def</span> <span class="func">login</span>(<span class="param">self</span>, <span class="param">username</span>: str, <span class="param">password</span>: str):
+        <span class="comment"># 로그인 동작 전체를 하나의 메서드로 캡슐화</span>
+        <span class="comment"># 테스트 코드에서는 login("kim", "pass123") 한 줄로 끝납니다</span>
+        self.page.fill(self.USERNAME_INPUT, username)
+        self.page.fill(self.PASSWORD_INPUT, password)
+        self.page.click(self.LOGIN_BUTTON)
+
+    <span class="keyword">def</span> <span class="func">get_error_message</span>(<span class="param">self</span>) -> str:
+        <span class="comment"># 에러 메시지 텍스트 반환</span>
+        <span class="comment"># 예: "로그인 실패: 입력값을 확인하세요."</span>
+        <span class="keyword">return</span> self.page.text_content(self.ERROR_MESSAGE)
+
+    <span class="keyword">def</span> <span class="func">is_error_visible</span>(<span class="param">self</span>) -> bool:
+        <span class="comment"># 에러 메시지가 화면에 보이는지 True/False 반환</span>
+        <span class="comment"># is_visible()은 실제로 화면에 렌더링됐는지 확인합니다</span>
+        <span class="comment"># (display:none 이면 False)</span>
+        <span class="keyword">return</span> self.page.is_visible(self.ERROR_MESSAGE)</pre>
+    </div>
+
+    <h3>DashboardPage</h3>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+        <div class="code-filename">tests/e2e/pages/dashboard_page.py</div>
+      </div>
+      <pre><span class="keyword">from</span> .base_page <span class="keyword">import</span> BasePage
+
+
+<span class="keyword">class</span> <span class="func">DashboardPage</span>(BasePage):
+
+    WELCOME_TEXT  = <span class="string">"#welcome"</span>    <span class="comment"># id="welcome" — "Welcome, kim" 텍스트</span>
+    LOGOUT_BUTTON = <span class="string">"#logout-btn"</span> <span class="comment"># id="logout-btn" — 로그아웃 버튼</span>
+
+    <span class="keyword">def</span> <span class="func">get_welcome_text</span>(<span class="param">self</span>) -> str:
+        <span class="comment"># 환영 메시지 텍스트 반환</span>
+        <span class="comment"># 예: "Welcome, kim"</span>
+        <span class="keyword">return</span> self.page.text_content(self.WELCOME_TEXT)
+
+    <span class="keyword">def</span> <span class="func">logout</span>(<span class="param">self</span>):
+        <span class="comment"># 로그아웃 버튼 클릭</span>
+        <span class="comment"># 클릭 후 server.py의 /logout 라우트가 로그인 페이지로 redirect합니다</span>
+        self.page.click(self.LOGOUT_BUTTON)</pre>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-icon">🔍</div>
+      <div class="callout-body">
+        <strong>셀렉터 오타 주의 — 실제로 겪은 실수</strong>
+        구현 중 <code style="font-family:monospace;color:var(--red)">#login_btn</code> (언더스코어)으로 잘못 입력해서 30초 타임아웃 에러를 겪었습니다. HTML의 id와 <strong>정확히 일치</strong>해야 합니다. 셀렉터를 상수로 관리하면 이런 오타를 한 곳에서만 잡으면 됩니다.
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 -->
+  <div class="section">
+    <div class="section-number">06</div>
+    <h2>fixture 재설계</h2>
+
+    <p>POM을 적용하면서 <span class="cmd">conftest.py</span>도 함께 개선했습니다. 기존에는 <span class="cmd">page</span> fixture만 썼다면, 이제는 <strong>page 위에 LoginPage 객체를 얹은 login_page fixture</strong>를 만들어서 테스트 준비를 더 자동화했습니다.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+        <div class="code-filename">tests/e2e/conftest.py</div>
+      </div>
+      <pre><span class="keyword">import</span> pytest
+<span class="keyword">import</span> sys, os
+
+<span class="comment"># pages/ 폴더를 import 경로에 추가</span>
+sys.path.insert(<span class="number">0</span>, os.path.join(os.path.dirname(__file__)))
+
+<span class="keyword">from</span> pages.login_page <span class="keyword">import</span> LoginPage
+<span class="keyword">from</span> pages.dashboard_page <span class="keyword">import</span> DashboardPage
+
+
+<span class="decorator">@pytest.fixture</span>
+<span class="keyword">def</span> <span class="func">login_page</span>(<span class="param">page</span>):
+    <span class="string">"""
+    로그인 페이지 객체를 준비해서 반환하는 fixture
+    - page: pytest-playwright가 자동 제공하는 브라우저 탭
+    - LoginPage 객체를 만들고 로그인 페이지로 자동 이동까지 수행
+    - 테스트 함수에서 login_page 파라미터만 선언하면 자동 주입됩니다
+    """</span>
+    lp = LoginPage(page)    <span class="comment"># LoginPage 객체 생성</span>
+    lp.navigate_to()        <span class="comment"># 로그인 페이지로 자동 이동</span>
+    <span class="keyword">return</span> lp
+
+
+<span class="decorator">@pytest.fixture</span>
+<span class="keyword">def</span> <span class="func">logged_in</span>(<span class="param">login_page</span>):
+    <span class="string">"""
+    이미 로그인된 상태의 DashboardPage를 반환하는 fixture
+    - login_page fixture를 파라미터로 받아 재사용합니다 (fixture 중첩)
+    - 로그아웃 테스트, 대시보드 검증처럼 로그인이 필요한 테스트에 사용
+    """</span>
+    login_page.login(<span class="string">"kim"</span>, <span class="string">"pass123"</span>)   <span class="comment"># 로그인 수행</span>
+    <span class="keyword">return</span> DashboardPage(login_page.page)  <span class="comment"># 대시보드 페이지 객체 반환</span></pre>
+    </div>
+
+    <h3>fixture 중첩이 강력한 이유</h3>
+    <p><span class="cmd">logged_in</span> fixture가 <span class="cmd">login_page</span> fixture를 파라미터로 받는 것을 <strong>fixture 중첩</strong>이라고 합니다. pytest가 알아서 실행 순서를 정해줍니다.</p>
+
+    <div class="result-box">
+      <span class="result-info">테스트가 logged_in fixture를 요청하면 pytest가 자동으로:</span><br><br>
+      <span class="result-highlight">1.</span> <span class="result-info">page fixture 실행 → 브라우저 탭 생성</span><br>
+      <span class="result-highlight">2.</span> <span class="result-info">login_page fixture 실행 → LoginPage 객체 생성 + 페이지 이동</span><br>
+      <span class="result-highlight">3.</span> <span class="result-info">logged_in fixture 실행 → 로그인 수행 + DashboardPage 반환</span><br>
+      <span class="result-highlight">4.</span> <span class="result-info">테스트 함수 실행</span><br>
+      <span class="result-highlight">5.</span> <span class="result-info">브라우저 탭 자동 종료</span>
+    </div>
+  </div>
+
+  <!-- 07 -->
+  <div class="section">
+    <div class="section-number">07</div>
+    <h2>테스트 코드 변화</h2>
+
+    <p>POM과 fixture를 모두 적용한 후 테스트 코드가 어떻게 바뀌었는지 비교합니다. 가장 큰 변화는 <strong>테스트 파일에서 셀렉터가 완전히 사라졌다</strong>는 것입니다.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots"><div class="dot dot-red"></div><div class="dot dot-yellow"></div><div class="dot dot-green"></div></div>
+        <div class="code-filename">tests/e2e/test_login_e2e.py</div>
+      </div>
+      <pre><span class="keyword">import</span> pytest
+
+
+<span class="keyword">class</span> <span class="func">TestLogin</span>:
+    <span class="comment"># 클래스로 테스트를 묶으면 pytest 리포트에서 그룹으로 보입니다</span>
+
+    <span class="keyword">def</span> <span class="func">test_정상_로그인</span>(<span class="param">self</span>, <span class="param">login_page</span>):
+        <span class="comment"># login_page = conftest.py의 fixture가 자동 주입됩니다</span>
+        <span class="comment"># 이미 로그인 페이지에 있는 상태로 시작합니다</span>
+        login_page.login(<span class="string">"kim"</span>, <span class="string">"pass123"</span>)
+        assert <span class="string">"dashboard"</span> <span class="keyword">in</span> login_page.get_current_url()
+
+    <span class="keyword">def</span> <span class="func">test_빈_아이디_에러</span>(<span class="param">self</span>, <span class="param">login_page</span>):
+        login_page.login(<span class="string">""</span>, <span class="string">"pass123"</span>)
+        assert login_page.is_error_visible() <span class="keyword">is True</span>
+
+    <span class="keyword">def</span> <span class="func">test_짧은_비밀번호_에러</span>(<span class="param">self</span>, <span class="param">login_page</span>):
+        login_page.login(<span class="string">"kim"</span>, <span class="string">"123"</span>)
+        assert login_page.is_error_visible() <span class="keyword">is True</span>
+
+    <span class="keyword">def</span> <span class="func">test_아이디_비번_동일_에러</span>(<span class="param">self</span>, <span class="param">login_page</span>):
+        login_page.login(<span class="string">"kim"</span>, <span class="string">"kim"</span>)
+        assert login_page.is_error_visible() <span class="keyword">is True</span>
+
+    <span class="decorator">@pytest.mark.parametrize</span>(<span class="string">"username,password"</span>, [
+        (<span class="string">""</span>,    <span class="string">"pass123"</span>),  <span class="comment"># 빈 아이디</span>
+        (<span class="string">"kim"</span>, <span class="string">"123"</span>),      <span class="comment"># 짧은 비밀번호</span>
+        (<span class="string">"kim"</span>, <span class="string">"kim"</span>),      <span class="comment"># 아이디 = 비밀번호</span>
+        (<span class="string">""</span>,    <span class="string">""</span>),         <span class="comment"># 둘 다 빈값</span>
+    ])
+    <span class="keyword">def</span> <span class="func">test_로그인_실패_케이스들</span>(<span class="param">self</span>, <span class="param">login_page</span>, <span class="param">username</span>, <span class="param">password</span>):
+        login_page.login(username, password)
+        assert login_page.is_error_visible() <span class="keyword">is True</span>
+
+
+<span class="keyword">class</span> <span class="func">TestDashboard</span>:
+    <span class="comment"># logged_in fixture = 이미 로그인된 상태로 시작</span>
+
+    <span class="keyword">def</span> <span class="func">test_환영메세지_표시</span>(<span class="param">self</span>, <span class="param">logged_in</span>):
+        welcome = logged_in.get_welcome_text()
+        assert <span class="string">"kim"</span> <span class="keyword">in</span> welcome
+
+    <span class="keyword">def</span> <span class="func">test_로그아웃_후_로그인페이지</span>(<span class="param">self</span>, <span class="param">logged_in</span>):
+        logged_in.logout()
+        assert <span class="string">"login"</span> <span class="keyword">in</span> logged_in.get_current_url()</pre>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-icon">✅</div>
+      <div class="callout-body">
+        <strong>테스트 코드에 셀렉터가 단 하나도 없습니다</strong>
+        <code style="font-family:monospace">#username</code>, <code style="font-family:monospace">#login-btn</code> 같은 셀렉터가 테스트 파일에 전혀 없습니다. HTML이 어떻게 구성됐는지 몰라도 테스트를 읽고 이해할 수 있습니다. 마치 자연어처럼 읽힙니다.
+      </div>
+    </div>
+  </div>
+
+  <hr/>
+
+  <!-- 08 -->
+  <div class="section">
+    <div class="section-number">08</div>
+    <h2>최종 실행 결과 및 회고</h2>
+
+    <div class="result-box">
+      <span class="result-info">$ pytest tests/ -v</span><br><br>
+      <span class="result-pass">PASSED</span> <span class="result-info">e2e/test_login_e2e.py::TestLogin::test_정상_로그인[chromium]</span><br>
+      <span class="result-pass">PASSED</span> <span class="result-info">e2e/test_login_e2e.py::TestLogin::test_빈_아이디_에러[chromium]</span><br>
+      <span class="result-pass">PASSED</span> <span class="result-info">e2e/test_login_e2e.py::TestLogin::test_짧은_비밀번호_에러[chromium]</span><br>
+      <span class="result-pass">PASSED</span> <span class="result-info">e2e/test_login_e2e.py::TestLogin::test_아이디_비번_동일_에러[chromium]</span><br>
+      <span class="result-pass">PASSED</span> <span class="result-info">e2e/test_login_e2e.py::TestLogin::test_로그인_실패_케이스들[chromium-...]</span><br>
+      <span class="result-pass">PASSED</span> <span class="result-info">e2e/test_login_e2e.py::TestDashboard::test_환영메세지_표시[chromium]</span><br>
+      <span class="result-pass">PASSED</span> <span class="result-info">e2e/test_login_e2e.py::TestDashboard::test_로그아웃_후_로그인페이지[chromium]</span><br>
+      <span class="result-pass">PASSED</span> <span class="result-info">unit/test_auth.py::test_validate_login_success</span><br>
+      <span class="result-info">...</span><br><br>
+      <span class="result-pass">18 passed in 5.15s</span>
+    </div>
+
+    <div class="summary">
+      <h3>🎯 POM 적용으로 달라진 것</h3>
+      <div class="summary-item"><span class="check">✅</span><div><strong>테스트 파일에서 셀렉터 완전 제거</strong> — HTML 구조를 몰라도 테스트를 읽고 이해할 수 있음</div></div>
+      <div class="summary-item"><span class="check">✅</span><div><strong>단일 수정 포인트</strong> — HTML id가 바뀌면 page 파일 하나만 수정, 테스트 파일은 건드리지 않음</div></div>
+      <div class="summary-item"><span class="check">✅</span><div><strong>상속으로 공통 코드 재사용</strong> — BasePage의 navigate(), get_current_url()을 LoginPage, DashboardPage가 공유</div></div>
+      <div class="summary-item"><span class="check">✅</span><div><strong>fixture 중첩으로 준비 자동화</strong> — logged_in fixture가 login_page fixture를 재사용해서 로그인까지 자동 처리</div></div>
+      <div class="summary-item"><span class="check">✅</span><div><strong>테스트 코드가 시나리오처럼 읽힘</strong> — login_page.login("kim", "pass123") 은 비개발자도 이해 가능한 수준</div></div>
+    </div>
+
+    <h3>회고</h3>
+    <p>POM 패턴을 적용하면서 가장 크게 느낀 것은 <strong>"좋은 테스트 코드는 코드를 읽지 않아도 무슨 테스트인지 알 수 있어야 한다"</strong>는 점입니다. POM 적용 전 코드는 <span class="cmd">#username</span>, <span class="cmd">#login-btn</span> 같은 HTML 세부사항이 테스트 로직과 뒤섞여 있었습니다. 적용 후에는 <span class="cmd">login_page.login("kim", "pass123")</span> 처럼 자연어에 가깝게 읽힙니다.</p>
+    <p>처음에는 "파일이 늘어나서 복잡해지는 것 아닌가?"라는 생각도 했습니다. 하지만 실제로 HTML 셀렉터가 바뀌는 상황을 겪으면서, <strong>파일이 늘어나는 비용보다 유지보수 비용이 줄어드는 이점이 훨씬 크다</strong>는 것을 체감했습니다. 이것이 POM 패턴이 실무에서 표준으로 자리잡은 이유라고 생각합니다.</p>
+  </div>
+
+  <!-- 이전/다음 -->
+  <div class="prev-next">
+    <div class="nav-card prev-card">
+      <div class="nav-label">← 이전 편</div>
+      <div class="nav-title">pytest + Playwright로 GUI 테스트 자동화하기</div>
+      <div class="nav-desc">Flask 앱 구현 + 단위 테스트 + E2E 자동화 + 스크린샷 저장</div>
+    </div>
+    <div class="nav-card next-card">
+      <div class="nav-label">다음 편 → 시리즈 3편 · 완결</div>
+      <div class="nav-title">GitHub Actions로 CI 파이프라인 구축하기</div>
+      <div class="nav-desc">push 한 번으로 18개 테스트가 자동 실행되는 구조 만들기<br>headless E2E + 실패 시 스크린샷 artifacts 업로드</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>테스트 자동화 파이프라인 구축 시리즈</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #4f8ef7;
+      --accent2: #7c5cfc;
+      --green: #3dd68c;
+      --red: #f7584f;
+      --yellow: #f7c948;
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --code-bg: #141720;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 16px;
+      line-height: 1.8;
+      min-height: 100vh;
+    }
+
+    /* ── 배경 그리드 패턴 ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(79,142,247,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(79,142,247,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page { position: relative; z-index: 1; }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 80px 24px 64px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    /* 배경 글로우 */
+    .hero-glow {
+      position: absolute;
+      top: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(61,214,140,0.06) 0%, rgba(79,142,247,0.04) 40%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(61,214,140,0.1);
+      border: 1px solid rgba(61,214,140,0.25);
+      border-radius: 20px;
+      padding: 5px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+      animation: fadeDown 0.6s ease both;
+    }
+
+    .hero h1 {
+      font-size: clamp(26px, 5vw, 48px);
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #e2e8f0 0%, #3dd68c 50%, #4f8ef7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: fadeDown 0.6s 0.1s ease both;
+    }
+
+    .hero-sub {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 560px;
+      margin: 0 auto 36px;
+      line-height: 1.9;
+      animation: fadeDown 0.6s 0.2s ease both;
+    }
+
+    /* 스택 뱃지 */
+    .stack-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+      animation: fadeDown 0.6s 0.3s ease both;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.3px;
+    }
+    .badge-blue  { background: rgba(79,142,247,0.12);  color: var(--accent);  border: 1px solid rgba(79,142,247,0.25); }
+    .badge-green { background: rgba(61,214,140,0.12);  color: var(--green);   border: 1px solid rgba(61,214,140,0.25); }
+    .badge-purple{ background: rgba(124,92,252,0.12);  color: var(--accent2); border: 1px solid rgba(124,92,252,0.25); }
+    .badge-yellow{ background: rgba(247,201,72,0.12);  color: var(--yellow);  border: 1px solid rgba(247,201,72,0.25); }
+    .badge-red   { background: rgba(247,88,79,0.12);   color: var(--red);     border: 1px solid rgba(247,88,79,0.25); }
+
+    /* 결과 수치 */
+    .stat-row {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+      animation: fadeDown 0.6s 0.4s ease both;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--green);
+      display: block;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-label { font-size: 12px; color: var(--text-muted); }
+
+    /* ── SERIES CARDS ── */
+    .container { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      margin: 64px 0 32px;
+    }
+
+    .series-stack { display: flex; flex-direction: column; gap: 20px; }
+
+    .series-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 32px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 24px;
+      align-items: center;
+      text-decoration: none;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease both;
+    }
+    .series-card:nth-child(1) { animation-delay: 0.1s; }
+    .series-card:nth-child(2) { animation-delay: 0.2s; }
+    .series-card:nth-child(3) { animation-delay: 0.3s; }
+
+    .series-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(61,214,140,0.03), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .series-card:hover { border-color: var(--green); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(61,214,140,0.08); }
+    .series-card:hover::before { opacity: 1; }
+
+    /* 왼쪽 번호 */
+    .card-num {
+      width: 52px; height: 52px;
+      background: rgba(61,214,140,0.08);
+      border: 1px solid rgba(61,214,140,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--green);
+      flex-shrink: 0;
+    }
+
+    /* 중간 텍스트 */
+    .card-body { min-width: 0; }
+    .card-ep {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 12px;
+    }
+    .card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .card-tag {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+
+    /* 오른쪽 화살표 */
+    .card-arrow {
+      color: var(--green);
+      font-size: 20px;
+      opacity: 0;
+      transform: translateX(-8px);
+      transition: opacity 0.2s, transform 0.2s;
+      flex-shrink: 0;
+    }
+    .series-card:hover .card-arrow { opacity: 1; transform: translateX(0); }
+
+    /* 완결 뱃지 */
+    .card-complete {
+      display: inline-block;
+      background: rgba(61,214,140,0.1);
+      border: 1px solid rgba(61,214,140,0.25);
+      color: var(--green);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    /* ── 파이프라인 흐름 ── */
+    .pipeline-section {
+      margin: 64px 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 36px 32px;
+    }
+    .pipeline-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .pipeline-flow {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .pf-step {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .pf-icon { font-size: 20px; margin-bottom: 6px; }
+    .pf-label { font-size: 12px; font-weight: 700; color: var(--text); }
+    .pf-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .pf-arrow { display: none; }
+
+    /* ── GitHub 링크 ── */
+    .github-bar {
+      margin: 0 0 80px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .github-left { display: flex; align-items: center; gap: 16px; }
+    .github-icon {
+      width: 44px; height: 44px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .github-text .label { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+    .github-text .repo { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text); font-weight: 600; }
+    .github-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(61,214,140,0.1);
+      border: 1px solid rgba(61,214,140,0.3);
+      color: var(--green);
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .github-btn:hover { background: rgba(61,214,140,0.18); border-color: rgba(61,214,140,0.5); }
+
+    /* ── animations ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 640px) {
+      .series-card { grid-template-columns: auto 1fr; }
+      .card-arrow { display: none; }
+      .pipeline-flow { flex-wrap: wrap; justify-content: flex-start; }
+      .pf-arrow { padding: 0 6px; }
+      .stat-row { gap: 24px; }
+      .github-bar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── HERO ── -->
+  <div class="hero">
+    <div class="hero-glow"></div>
+
+    <div class="hero-label">
+      <span>📝</span> 기술 블로그 시리즈 · 완결
+    </div>
+
+    <h1>테스트 자동화<br>파이프라인 구축기</h1>
+
+    <p class="hero-sub">
+      Flask 웹앱을 직접 만들고, Playwright로 GUI를 자동 검증 후<br>
+      GitHub Actions로 CI 파이프라인까지 연결한 전체 과정
+    </p>
+
+    <div class="stack-row">
+      <span class="badge badge-purple">pytest</span>
+      <span class="badge badge-green">Playwright</span>
+      <span class="badge badge-blue">Flask</span>
+      <span class="badge badge-yellow">POM 패턴</span>
+      <span class="badge badge-red">GitHub Actions</span>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat">
+        <span class="stat-num">18</span>
+        <span class="stat-label">자동화 테스트</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">3</span>
+        <span class="stat-label">블로그 시리즈</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">0</span>
+        <span class="stat-label">수동 실행</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <div class="section-label">📚 시리즈 목록</div>
+
+    <!-- ── 시리즈 카드 ── -->
+    <div class="series-stack">
+
+      <a class="series-card" href="part1.html">
+        <div class="card-num">01</div>
+        <div class="card-body">
+          <div class="card-ep">시리즈 1편</div>
+          <div class="card-title">pytest + Playwright로 GUI 테스트 자동화하기</div>
+          <div class="card-desc">
+            Flask 로그인 앱을 직접 설계하고, 단위 테스트 8개 + E2E 자동화 10개를 구현했습니다.
+            실패 시 스크린샷 자동 저장까지, 테스트를 고려한 구조 설계의 시작.
+          </div>
+          <div class="card-tags">
+            <span class="card-tag">pytest</span>
+            <span class="card-tag">Playwright</span>
+            <span class="card-tag">Flask</span>
+            <span class="card-tag">conftest</span>
+            <span class="card-tag">screenshot hook</span>
+          </div>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <a class="series-card" href="part2.html">
+        <div class="card-num">02</div>
+        <div class="card-body">
+          <div class="card-ep">시리즈 2편</div>
+          <div class="card-title">Page Object Model(POM) 패턴 적용하기</div>
+          <div class="card-desc">
+            셀렉터가 테스트 코드에 뒤섞이는 문제를 해결하기 위해 POM 패턴을 도입했습니다.
+            BasePage 상속 구조와 fixture 중첩으로 유지보수 비용을 최소화한 과정.
+          </div>
+          <div class="card-tags">
+            <span class="card-tag">POM</span>
+            <span class="card-tag">BasePage</span>
+            <span class="card-tag">상속</span>
+            <span class="card-tag">fixture 중첩</span>
+            <span class="card-tag">셀렉터 분리</span>
+          </div>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+      <a class="series-card" href="part3.html">
+        <div class="card-num">03</div>
+        <div class="card-body">
+          <div class="card-ep">시리즈 3편 <span class="card-complete">완결</span></div>
+          <div class="card-title">GitHub Actions로 CI 파이프라인 구축하기</div>
+          <div class="card-desc">
+            push 한 번으로 18개 테스트가 자동 실행되는 CI 파이프라인을 구성했습니다.
+            headless E2E, 실패 시 스크린샷 artifacts 업로드, sleep 2의 한계와 개선 방법에 대하여.
+          </div>
+          <div class="card-tags">
+            <span class="card-tag">GitHub Actions</span>
+            <span class="card-tag">CI/CD</span>
+            <span class="card-tag">headless</span>
+            <span class="card-tag">artifacts</span>
+            <span class="card-tag">workflow yml</span>
+          </div>
+        </div>
+        <div class="card-arrow">→</div>
+      </a>
+
+    </div>
+
+    <!-- ── 파이프라인 흐름 ── -->
+    <div class="pipeline-section">
+      <div class="pipeline-title">🔄 구현된 전체 파이프라인</div>
+      <div class="pipeline-flow">
+        <div class="pf-step">
+          <div class="pf-icon">💻</div>
+          <div class="pf-label">Flask 앱</div>
+          <div class="pf-sub">테스트 대상 설계</div>
+        </div>
+        <div class="pf-step">
+          <div class="pf-icon">🧪</div>
+          <div class="pf-label">단위 테스트</div>
+          <div class="pf-sub">pytest · 8개</div>
+        </div>
+        <div class="pf-step">
+          <div class="pf-icon">🖥️</div>
+          <div class="pf-label">E2E 자동화</div>
+          <div class="pf-sub">Playwright · 10개</div>
+        </div>
+        <div class="pf-step">
+          <div class="pf-icon">📐</div>
+          <div class="pf-label">POM 패턴</div>
+          <div class="pf-sub">유지보수 구조</div>
+        </div>
+        <div class="pf-step">
+          <div class="pf-icon">⚙️</div>
+          <div class="pf-label">CI 파이프라인</div>
+          <div class="pf-sub">push → 자동 실행</div>
+        </div>
+        <div class="pf-step" style="border-color: rgba(61,214,140,0.4); background: rgba(61,214,140,0.06);">
+          <div class="pf-icon">✅</div>
+          <div class="pf-label">18 passed</div>
+          <div class="pf-sub" style="color: var(--green);">자동화 완성</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GitHub 링크 ── -->
+    <div class="github-bar">
+      <div class="github-left">
+        <div class="github-icon">🐙</div>
+        <div class="github-text">
+          <div class="label">소스코드</div>
+          <div class="repo">github.com/diharong/pytest-e2e-automation</div>
+        </div>
+      </div>
+      <a class="github-btn" href="https://github.com/diharong/pytest-e2e-automation" target="_blank">
+        GitHub 보기 →
+      </a>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
