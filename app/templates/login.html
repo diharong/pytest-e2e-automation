@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>Login</title>
+</head>
+<body>
+  <h1>Login</h1>
+
+  {% if error %}
+    <p id="error" style="color:red">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" action="/login">
+    <label>
+      Username:
+      <input id="username" name="username" />
+    </label>
+    <br />
+    <label>
+      Password:
+      <input id="password" name="password" type="password" />
+    </label>
+    <br />
+    <button id="login-btn" type="submit">Login</button>
+  </form>
+</body>
+</html>

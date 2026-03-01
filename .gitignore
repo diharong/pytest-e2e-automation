@@ -1,0 +1,18 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# Pytest cache
+.pytest_cache/
+
+# Test artifacts
+artifacts/
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
