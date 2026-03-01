@@ -59,7 +59,7 @@ jobs:
       # 8. 실패 시 스크린샷 업로드
       - name: 스크린샷 업로드 (실패 시)
         if: failure()   # 앞 단계가 실패했을 때만 실행
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: screenshots
           path: artifacts/screenshots/
