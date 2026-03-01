@@ -1,89 +1,65 @@
 import pytest
 
-BASE_URL = "http://127.0.0.1:5000"
+class TestLogin:
+    def test_정상_로그인(self, login_page):
+        # 이미 로그인페이지에 와있는 ㄴ상태로 시작
 
-# pytest 마커
-# 왜 쓰냐? e2e 테스트만 따로 실행하기 위해서
-@pytest.mark.e2e
-def test_login_success(page):
-    '''
-    로그인 성공 시나리오:
-    1) /login 접속
-    2) username/password 입력
-    3) 로그인 버튼 클릭
-    4) dashboard로 이동했고, 환영 문구가 보이는지 검증
-    '''
+        login_page.login("kim", "pass123")
 
-    # 브라우저가 해당 URL로 이동
-    # page는 pytest-playwright가 제공하는 fixture (브라우저 탭 1개라고 생각하면 됨)
-    page.goto(f"{BASE_URL}/login")
+        # 로그인 성공시 URL 에 "dashboard" 가 포함되어야 함
+        # http://127.0.0.1:5000/dashboard
+        assert "dashboard" in login_page.get_current_url()
 
-    page.fill("#username", "kim") # input id = "username"
-    page.fill("#password", "pass123") # input id = "password"
+    def test_빈_아이디_에러(self, login_page):
 
-    # id="login-btn" 버튼 클릭
-    page.click("#login-btn")
+        login_page.login("", "pass123")
+
+        # 에러 메세지가 화면에 나타나야함
+        assert login_page.is_error_visible() is True
 
 
-    # 로그인 성공 시 dashboard 페이지로 이동하고
-    # id="welcome" 요소가 존재함
-    # locator는 요소를 "찾기 위한 객체"를 만드는 것
-    #dashboard로 이동하면 h1#welcome 이 보임
-    welcome = page.locator("#welcome")
-    except_text = "Welcome, kim"
-    assert welcome.inner_text() == except_text
+    def test_짧은_비밀번호_에러(self, login_page):
 
-@pytest.mark.e2e
-def test_login_fail_shows_error(page):
-    '''
-    로그인 실패 시나리오
-    1) /login 접속
-    2) 잘못된 값 입력 (ex. username 공백)
-    3) 로그인 버튼 클릭
-    4) 에러 메세지가 화면에 나타나는지 검증
-    '''
+        login_page.login("kim", "123")
 
-    # 로그인 페이지 접속
-    page.goto(f"{BASE_URL}/login")
-    # username 비워서 실패 유도
-    page.fill("#username", "")
+        assert login_page.is_error_visible() is True
 
-    # 비밀번호는 정상값
-    page.fill("#password", "pass123")
+    def test_아이디_비번_동일_에러(self, login_page):
+        
+        login_page.login("kim", "kim")
 
-    # 로그인 버튼 클릭
-    page.click("#login-btn")
-
-    # id = "error" 요소를 찾기 위한 locator 생성
-    error = page.locator("#error")
-
-    # 에러메세지가 화면에 실제로 보이는지 확인
-    # is_visible()은 요소가 DOM에 있고, 화면에 표시되는지 확인
-    assert error.is_visible() is True
+        assert login_page.is_error_visible() is True
 
 
-@pytest.mark.e2e
-def test_스크린샷_저장_확인용(page):
-    """
-    이 테스트는 일부러 실패시켜서
-    artifacts/screenshots/ 폴더에 스크린샷이 찍히는지 확인하는 용도예요.
-    확인 후 삭제해도 됩니다.
-    """
-    page.goto(f"{BASE_URL}/login")
+    # parametrize 같은 테스트를 여러 입력값으로 반복 실행
+    # 아래 4가지 케이스가 각각 독립적인 테스트로 실행됨
+    @pytest.mark.parametrize("username, password", [
+        ("", "pass123"),
+        ("kim", "123"),
+        ("kim", "kim"),
+        (" ", " "),
+    ])
+    def test_로그인_실패_케이스들(self, login_page, username, password):
 
-    # 로그인 성공하면 화면에 "Welcome, kim" 이 나옴
-    # 근데 아래에서 "kim" 이 아닌 엉뚱한 이름을 기대하면 → 실패
-    page.fill("#username", "kim")
-    page.fill("#password", "pass123")
-    page.click("#login-btn")
+        # parametrize에서 넘어온 username, password로 로그인 시도
+        login_page.login(username, password)
 
-    welcome = page.locator("#welcome")
-    actual = welcome.inner_text()       # 실제값: "Welcome, kim"
-    expected = "Welcome, 홍길동"         # 기대값: "Welcome, 홍길동" (없는 이름)
-
-    # actual != expected 이므로 실패
-    assert actual == expected
+        #어떤 케이스든 에러 메세지가 표시되어야함
+        assert login_page.is_error_visible() is True
 
 
+class TestDashboard:
+    # logged_in fixture를 사용.
+    # → 이미 로그인된 상태에서 시작
+
+    def test_환영메세지_표시(self, logged_in):
+        welcome = logged_in.get_welcome_text()
+
+        assert "kim" in welcome
 
 
+    def test_로그아웃_후_로그인페이지(self, logged_in):
+
+        logged_in.logout()
+
+        assert "login" in logged_in.get_current_url()

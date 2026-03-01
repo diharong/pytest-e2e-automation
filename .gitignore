@@ -16,3 +16,6 @@ artifacts/
 
 # OS
 .DS_Store
+
+# DB 
+*.db
