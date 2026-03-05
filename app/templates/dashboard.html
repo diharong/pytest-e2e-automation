@@ -3,12 +3,58 @@
 <head>
   <meta charset="utf-8" />
   <title>Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f4f4f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    #welcome {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #18181b;
+    }
+
+    #logout-btn {
+      padding: 0.65rem 1.25rem;
+      background: #fff;
+      color: #ef4444;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    #logout-btn:hover { background: #fef2f2; }
+  </style>
 </head>
 <body>
-  <h1 id="welcome">Welcome, {{ user }}</h1>
+  <div class="card">
+    <h1 id="welcome">Welcome, {{ user }}</h1>
 
-  <form method="post" action="/logout">
-    <button id="logout-btn" type="submit">Logout</button>
-  </form>
+    <form method="post" action="/logout">
+      <button id="logout-btn" type="submit">Logout</button>
+    </form>
+  </div>
 </body>
 </html>

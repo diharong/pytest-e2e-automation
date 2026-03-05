@@ -5,8 +5,8 @@
 ![pytest](https://img.shields.io/badge/pytest-8.x-green)
 ![Playwright](https://img.shields.io/badge/Playwright-latest-orange)
 
-> Flask 웹앱을 직접 만들고, pytest + Playwright로 GUI 테스트를 자동화하고,
-> GitHub Actions로 CI 파이프라인까지 연결한 프로젝트입니다.
+> Flask 웹앱을 만들고, pytest + Playwright로 GUI 테스트를 자동화한 뒤
+> GitHub Actions로 테스트가 자동 실행되도록 연결한 프로젝트입니다.
 
 📖 **[블로그 시리즈 전체 보기](https://diharong.github.io/pytest-e2e-automation/)**
 
@@ -14,18 +14,23 @@
 
 ## 📌 프로젝트 개요
 
-단순히 테스트 라이브러리 사용법을 익히는 것을 넘어,
-**테스트 대상 서비스(Flask 앱)부터 자동화 프레임워크(pytest + Playwright), CI 파이프라인까지 직접 설계하고 연결**했습니다.
+이 프로젝트는 테스트 코드를 작성하는 것에서 끝나는 것이 아니라,  
+**테스트 대상 서비스와 테스트 실행 환경을 함께 구성해보는 것**을 목표로 만들었습니다.
 
-실무에서 QA 엔지니어가 하는 것처럼:
-- 테스트하기 좋은 구조로 서비스를 설계하고
-- 단위 테스트로 로직을 검증하고
-- GUI 자동화로 사용자 시나리오를 검증하고
-- CI로 push마다 자동 실행되도록 파이프라인을 구성하는
+간단한 Flask 웹 애플리케이션을 만들고,
 
-전체 흐름을 한 프로젝트에 담았습니다.
+- pytest로 **로직을 단위 테스트로 검증하고**
+- Playwright로 **브라우저 기반 GUI 테스트를 작성하고**
+- GitHub Actions로 **코드 변경 시 테스트가 자동 실행되도록** 구성했습니다.
 
 ---
+
+## 🎬 Demo
+
+Playwright가 브라우저를 열고 로그인 흐름을 자동으로 테스트하는 모습입니다.
+
+
+
 
 ## 🔄 전체 파이프라인
 
@@ -44,8 +49,8 @@ Flask 앱 설계 → 단위 테스트(8개) → E2E 자동화(10개) → POM 패
 | 웹 서버 | Flask |
 | 단위 테스트 | pytest |
 | GUI 자동화 | Playwright + pytest-playwright |
-| 테스트 패턴 | Page Object Model (POM) |
-| CI 파이프라인 | GitHub Actions |
+| 테스트 구조 | Page Object Model (POM) |
+| CI | GitHub Actions |
 
 ---
 
@@ -55,25 +60,25 @@ Flask 앱 설계 → 단위 테스트(8개) → E2E 자동화(10개) → POM 패
 pytest-e2e-automation/
 ├── .github/
 │   └── workflows/
-│       └── test.yml         # CI: push 시 자동 테스트 실행
+│       └── test.yml         
 ├── app/
-│   ├── auth.py              # 로그인 검증 로직 (UI와 분리)
-│   ├── server.py            # Flask 웹 서버
+│   ├── auth.py              
+│   ├── server.py            
 │   └── templates/
 │       ├── login.html
 │       └── dashboard.html
 ├── tests/
-│   ├── conftest.py          # 실패 시 스크린샷 자동 저장 (pytest hook)
+│   ├── conftest.py          
 │   ├── unit/
-│   │   └── test_auth.py     # 단위 테스트
+│   │   └── test_auth.py     
 │   └── e2e/
-│       ├── conftest.py      # 브라우저 fixture
-│       ├── pages/           # Page Object Model
+│       ├── conftest.py      
+│       ├── pages/           
 │       │   ├── base_page.py
 │       │   ├── login_page.py
 │       │   └── dashboard_page.py
 │       └── test_login_e2e.py
-├── docs/                    # GitHub Pages 블로그
+├── docs/                   
 ├── pytest.ini
 └── requirements.txt
 ```
@@ -83,7 +88,7 @@ pytest-e2e-automation/
 ## ✅ 테스트 항목
 
 ### 단위 테스트 (Unit Test) — 8개
-브라우저 없이 로그인 검증 로직만 빠르게 검증합니다.
+브라우저 없이 로그인 검증 로직만 검증합니다.
 
 | 테스트 | 설명 |
 |---|---|
@@ -91,41 +96,43 @@ pytest-e2e-automation/
 | test_validate_login_fail_empty_username | 빈 아이디 거부 |
 | test_validate_login_fail_short_password | 4자 미만 비밀번호 거부 |
 | test_validate_login_fail_same_username_password | 아이디=비밀번호 거부 |
-| test_validate_login_parametrized | 경계값 4가지 케이스 한번에 검증 |
+| test_validate_login_parametrized | 여러 입력값을 한번에 검증 |
 
-### E2E GUI 자동화 테스트 — 10개
-실제 브라우저를 켜서 사용자처럼 클릭/입력하여 검증합니다.
+### E2E GUI 테스트 — 10개
+브라우저를 실행해서 실제 사용자 동작처럼 로그인 과정을 확인합니다.
 
 | 테스트 | 설명 |
 |---|---|
-| test_정상_로그인 | 올바른 계정으로 로그인 후 dashboard 이동 확인 |
-| test_빈_아이디_에러 | 빈 아이디로 시도 시 에러 메시지 표시 확인 |
-| test_짧은_비밀번호_에러 | 4자 미만 비밀번호로 시도 시 에러 메시지 확인 |
-| test_아이디_비번_동일_에러 | 아이디=비밀번호로 시도 시 에러 메시지 확인 |
-| test_로그인_실패_케이스들 | parametrize로 4가지 실패 케이스 한번에 검증 |
-| test_환영메세지_표시 | 로그인 후 환영 메시지에 아이디 포함 확인 |
+| test_정상_로그인 | 로그인 후 dashboard 이동 확인 |
+| test_빈_아이디_에러 | 빈 아이디 입력 시 에러 메시지 확인 |
+| test_짧은_비밀번호_에러 | 4자 미만 비밀번호로 입력 시 에러 메시지 확인 |
+| test_아이디_비번_동일_에러 | 아이디=비밀번호 입력 시 에러 메시지 확인 |
+| test_로그인_실패_케이스들 | 여러 실패 케이스를 parametrize로 확인 |
+| test_환영메세지_표시 | 로그인 후 환영 메시지 확인 |
 | test_로그아웃_후_로그인페이지 | 로그아웃 후 로그인 페이지로 이동 확인 |
 
 ---
 
-## 🔑 핵심 구현 포인트
+## 🔑 구현 포인트
 
 ### 1. Page Object Model (POM)
-셀렉터를 테스트 파일에 직접 쓰지 않고 `pages/` 폴더에서 관리합니다.
-HTML이 바뀌어도 page 파일 하나만 수정하면 됩니다.
+화면 요소 셀렉터를 테스트 코드에 직접 쓰지 않고  
+`pages/` 폴더에서 관리하도록 구성했습니다.
+
+HTML이 변경되면 해당 페이지 파일만 수정하면 됩니다.
 
 ```python
-# ❌ POM 없이 — 셀렉터가 테스트 코드에 직접 박혀있음
+# ❌ POM 없이 — 셀렉터가 테스트 코드에 직접 사용
 page.fill("#username", "kim")
 page.fill("#password", "pass123")
 page.click("#login-btn")
 
-# ✅ POM 적용 후 — 테스트는 시나리오에만 집중
+# ✅ POM 적용 
 login_page.login("kim", "pass123")
 ```
 
 ### 2. pytest fixture
-브라우저 준비/정리를 자동화해서 테스트 함수는 검증 로직에만 집중합니다.
+브라우저 생성과 종료를 fixture에서 처리해서 테스트 함수에서는 검증 로직만 작성하도록 했습니다.
 
 ```python
 @pytest.fixture
@@ -140,8 +147,8 @@ def test_정상_로그인(self, login_page):
 ```
 
 ### 3. 실패 시 스크린샷 자동 저장
-pytest hook을 활용해서 테스트 실패 시 화면을 자동 캡처합니다.
-CI 환경(headless)에서도 실패 원인을 GitHub artifacts에서 바로 확인할 수 있습니다.
+pytest hook을 사용해서 테스트가 실패하면
+현재 화면을 자동으로 캡처하도록 했습니다.
 
 ```python
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -154,13 +161,13 @@ def pytest_runtest_makereport(item, call):
             page.screenshot(path=f"artifacts/screenshots/{item.name}.png")
 ```
 
-### 4. GitHub Actions CI 파이프라인
-`main` 브랜치에 push하면 자동으로 18개 테스트가 실행됩니다.
+### 4. GitHub Actions 연결하기
+코드를 push하면 테스트가 자동으로 실행되도록 설정했습니다.
 
 ```yaml
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   test:
@@ -170,10 +177,10 @@ jobs:
       - uses: actions/setup-python@v4
       - run: pip install -r requirements.txt
       - run: python -m playwright install --with-deps chromium
-      - run: cd app && python server.py &  # 백그라운드 실행
+      - run: cd app && python server.py &  
       - run: pytest tests/ -v
       - if: failure()
-        uses: actions/upload-artifact@v3   # 실패 시 스크린샷 업로드
+        uses: actions/upload-artifact@v3   
 ```
 
 ---
@@ -232,4 +239,4 @@ tests/unit/test_auth.py::test_validate_login_success                            
 |---|---|---|
 | 1편 | [pytest + Playwright로 GUI 테스트 자동화하기](https://diharong.github.io/pytest-e2e-automation/part1.html) | Flask 앱 설계, 단위 테스트, E2E 자동화, 스크린샷 저장 |
 | 2편 | [Page Object Model(POM) 패턴 적용하기](https://diharong.github.io/pytest-e2e-automation/part2.html) | 셀렉터 분리, BasePage 상속, fixture 중첩 |
-| 3편 | [GitHub Actions로 CI 파이프라인 구축하기](https://diharong.github.io/pytest-e2e-automation/part3.html) | push → 자동 테스트 → artifacts 수집 |
+| 3편 | [GitHub Actions로 CI 연결하기](https://diharong.github.io/pytest-e2e-automation/part3.html) | push → 자동 테스트 → artifacts 수집 |
